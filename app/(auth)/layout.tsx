@@ -1,8 +1,10 @@
 import React from 'react'
 
-const AuthLayout = () => {
+const AuthLayout = ({ children }: { children: React.ReactNode }) => {
     return (
-        <div>Auth Layout</div>
+        <div>
+            {children}
+        </div>
     )
 }
 
