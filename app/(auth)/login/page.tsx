@@ -1,11 +1,16 @@
 'use client'
 import LoadingButton from '@/components/loading-button/LoadingButton'
+import { AuthService } from '@/services/authService'
+import { useUserStore } from '@/store/useUserStore'
 import { yupResolver } from '@hookform/resolvers/yup'
+import { useMutation } from '@tanstack/react-query'
 import { Eye, EyeOff } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import * as yup from 'yup'
+import Cookies from 'js-cookie';
 
 const schema = yup.object().shape({
     email: yup.string().email('Invalid email!').required('Email is required'),
@@ -16,7 +21,7 @@ const LoginPage = () => {
     const router = useRouter()
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const { control, watch } = useForm({
+    const { control, watch, formState: { isValid } } = useForm({
         mode: 'onChange',
         resolver: yupResolver(schema),
         defaultValues: {
@@ -27,12 +32,39 @@ const LoginPage = () => {
 
     const form = watch()
 
+    const { user, setUser } = useUserStore()
+    const { mutate: login, isPending } = useMutation({
+        mutationFn: async (data: any) => AuthService.login(data),
+        onSuccess: (res) => {
+            console.log('Login success: ', res)
+            const userData = res.data?.metadata?.data
+            const { accessToken, refreshToken } = userData?.tokens || {}
+
+            Cookies.set('session', accessToken, { expires: 7 })
+            Cookies.set('refreshToken', refreshToken, { expires: 30 })
+
+            setUser(userData)
+
+            toast.success('Login successful!')
+            router.push('/')
+
+            router.refresh()
+        },
+        onError: (err: any) => {
+            console.log('Login error: ', err)
+            toast.error(err?.response?.data?.message || 'Login failed!')
+        }
+    })
+
     const handleToRegister = () => {
         router.push('/register')
     }
 
     const handleSubmit = () => {
-        console.log('form: ', form)
+        console.log('user: ', user)
+        if (!user || !user?._id) {
+            login(form)
+        }
     }
 
     return (
@@ -127,9 +159,10 @@ const LoginPage = () => {
                 </div>
 
                 <LoadingButton
-                    isLoading={isLoading}
+                    isLoading={isPending}
                     className='w-120 mt-12 cursor-pointer rounded-sm bg-blue-500 text-white font-bold'
                     onClick={handleSubmit}
+                    disabled={!isValid || isPending}
                 >
                     Login
                 </LoadingButton>

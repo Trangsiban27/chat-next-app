@@ -34,12 +34,9 @@ const RegisterPage = () => {
         }
     })
 
-    const { setUser } = useUserStore()
     const { mutate: register, isPending } = useMutation({
         mutationFn: (data: any) => AuthService.register(data),
         onSuccess: (res) => {
-            setUser(res.data?.metadata?.metadata?.user)
-
             toast.success('Create new a account successed!')
             router.push('/login')
         },
