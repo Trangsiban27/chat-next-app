@@ -1,11 +1,15 @@
 'use client'
 import LoadingButton from '@/components/loading-button/LoadingButton'
+import { AuthService } from '@/services/authService'
 import { yupResolver } from '@hookform/resolvers/yup'
+import { toast } from 'sonner'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { Eye, EyeOff } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, set, useForm } from 'react-hook-form'
 import * as yup from 'yup'
+import { useUserStore } from '@/store/useUserStore'
 
 const schema = yup.object().shape({
     username: yup.string().min(2, 'Username must be at least 2 characters!').required('Username is required'),
@@ -30,6 +34,21 @@ const RegisterPage = () => {
         }
     })
 
+    const { setUser } = useUserStore()
+    const { mutate: register, isPending } = useMutation({
+        mutationFn: (data: any) => AuthService.register(data),
+        onSuccess: (res) => {
+            setUser(res.data?.metadata?.metadata?.user)
+
+            toast.success('Create new a account successed!')
+            router.push('/login')
+        },
+        onError: (err: any) => {
+            console.log('err: ', err?.response?.data?.message)
+            toast.error(err?.response?.data?.message || 'Đăng ký thất bại, vui lòng thử lại!')
+        }
+    })
+
     const form = watch()
 
     const handleToLogin = () => {
@@ -37,7 +56,8 @@ const RegisterPage = () => {
     }
 
     const handleSubmit = () => {
-        console.log('form: ', form)
+        const { confirmPassword, ...registerData } = form
+        register(registerData)
     }
 
     return (
@@ -212,7 +232,7 @@ const RegisterPage = () => {
                 </div>
 
                 <LoadingButton
-                    isLoading={isLoading}
+                    isLoading={isPending}
                     className='w-120 mt-12 cursor-pointer rounded-sm bg-blue-500 text-white font-bold'
                     onClick={handleSubmit}
                     disabled={!isValid}
