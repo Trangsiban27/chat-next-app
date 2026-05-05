@@ -8,27 +8,32 @@ import { Controller, useForm } from 'react-hook-form'
 import * as yup from 'yup'
 
 const schema = yup.object().shape({
+    username: yup.string().min(2, 'Username must be at least 2 characters!').required('Username is required'),
     email: yup.string().email('Invalid email!').required('Email is required'),
     password: yup.string().min(6, 'Password must be at least 6 characters!').required('Password is required'),
+    confirmPassword: yup.string().oneOf([yup.ref('password')], 'Passwords must match!').required('Confirm Password is required'),
 })
 
-const LoginPage = () => {
+const RegisterPage = () => {
     const router = useRouter()
-    const [showPassword, setShowPassword] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const { control, watch } = useForm({
+    const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
+    const { control, watch, formState: { isValid } } = useForm({
         mode: 'onChange',
         resolver: yupResolver(schema),
         defaultValues: {
+            username: '',
             email: '',
             password: '',
+            confirmPassword: '',
         }
     })
 
     const form = watch()
 
-    const handleToRegister = () => {
-        router.push('/register')
+    const handleToLogin = () => {
+        router.push('/login')
     }
 
     const handleSubmit = () => {
@@ -42,9 +47,41 @@ const LoginPage = () => {
             </div>
 
             <div className='flex flex-col flex-1 items-center justify-center h-screen'>
-                <h1 className='text-black font-bold text-3xl'>Login</h1>
+                <h1 className='text-black font-bold text-3xl'>Create Your Account</h1>
 
                 <div className='mt-10 flex flex-col gap-8'>
+                    <Controller
+                        name="username"
+                        control={control}
+                        render={({ field, fieldState: { error } }) => (
+                            <div className="w-120 flex flex-col gap-1.5">
+                                <label
+                                    htmlFor="username"
+                                    className={`font-semibold text-sm ${error ? 'text-red-500' : 'text-gray-700'}`}
+                                >
+                                    Your name
+                                </label>
+                                <input
+                                    {...field}
+                                    id="username"
+                                    type="text"
+                                    placeholder="Enter your name..."
+                                    className={`border p-2 rounded-md w-full transition-all outline-none ${error
+                                        ? 'border-red-500 focus:ring-1 focus:ring-red-500'
+                                        : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                                        }`}
+                                />
+
+                                {/* Hiển thị thông báo lỗi */}
+                                {error && (
+                                    <span className="text-red-500 text-xs font-medium animate-in fade-in slide-in-from-top-1">
+                                        {error.message}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                    />
+
                     <Controller
                         name="email"
                         control={control}
@@ -60,7 +97,7 @@ const LoginPage = () => {
                                     {...field}
                                     id="email"
                                     type="email"
-                                    placeholder="Nhập email của bạn"
+                                    placeholder="Enter your email..."
                                     className={`border p-2 rounded-md w-full transition-all outline-none ${error
                                         ? 'border-red-500 focus:ring-1 focus:ring-red-500'
                                         : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
@@ -94,7 +131,7 @@ const LoginPage = () => {
                                         {...field}
                                         id="password"
                                         type={showPassword ? "text" : "password"}
-                                        placeholder="Nhập mật khẩu của bạn"
+                                        placeholder="Enter your password..."
                                         className={`border p-2 pr-10 rounded-md w-full transition-all outline-none ${error
                                             ? 'border-red-500 focus:ring-1 focus:ring-red-500'
                                             : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
@@ -124,24 +161,73 @@ const LoginPage = () => {
                             </div>
                         )}
                     />
+
+                    <Controller
+                        name="confirmPassword"
+                        control={control}
+                        render={({ field, fieldState: { error } }) => (
+                            <div className="w-120 flex flex-col gap-1.5">
+                                <label
+                                    htmlFor="confirmPassword"
+                                    className={`font-semibold text-sm ${error ? 'text-red-500' : 'text-gray-700'}`}
+                                >
+                                    Confirm Password
+                                </label>
+
+                                <div className="relative">
+                                    <input
+                                        {...field}
+                                        id="confirmPassword"
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        placeholder="Confirm your password..."
+                                        className={`border p-2 pr-10 rounded-md w-full transition-all outline-none ${error
+                                            ? 'border-red-500 focus:ring-1 focus:ring-red-500'
+                                            : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                                            }`}
+                                    />
+
+                                    {/* Nút View Password */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 cursor-pointer"
+                                    >
+                                        {showConfirmPassword ? (
+                                            <EyeOff className="w-5 h-5" />
+                                        ) : (
+                                            <Eye className="w-5 h-5" />
+                                        )}
+                                    </button>
+                                </div>
+
+                                {/* Hiển thị thông báo lỗi */}
+                                {error && (
+                                    <span className="text-red-500 text-xs font-medium animate-in fade-in slide-in-from-top-1">
+                                        {error.message}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                    />
                 </div>
 
                 <LoadingButton
                     isLoading={isLoading}
                     className='w-120 mt-12 cursor-pointer rounded-sm bg-blue-500 text-white font-bold'
                     onClick={handleSubmit}
+                    disabled={!isValid}
                 >
-                    Login
+                    Register
                 </LoadingButton>
 
                 <div className='flex items-center justify-end'>
                     <span className='text-sm text-gray-500'>
-                        Don't have an account?{' '}
+                        You have an account?{' '}
                         <button
-                            onClick={handleToRegister}
+                            onClick={handleToLogin}
                             className='text-blue-500 hover:underline cursor-pointer'
                         >
-                            Register
+                            Login
                         </button>
                     </span>
                 </div>
@@ -150,4 +236,4 @@ const LoginPage = () => {
     )
 }
 
-export default LoginPage
+export default RegisterPage
