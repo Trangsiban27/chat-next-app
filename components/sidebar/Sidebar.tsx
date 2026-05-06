@@ -2,12 +2,14 @@
 import React from 'react'
 import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Compass, Heart, MessageCircle, Radio, Settings } from 'lucide-react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useUserStore } from '@/store/useUserStore'
 
 const Sidebar = () => {
-
+    const router = useRouter()
     const pathname = usePathname()
+    const { user } = useUserStore()
 
     const navigations = [
         { name: 'Explore', icon: Compass, href: '/' },
@@ -15,6 +17,10 @@ const Sidebar = () => {
         { name: 'Live', icon: Radio, href: '/live' },
         { name: 'Chat', icon: MessageCircle, href: '/chat' },
     ]
+
+    const handleToSetting = () => {
+        router.replace('/settings')
+    }
 
     return (
         <aside className="hidden md:flex w-64 flex-col border-r bg-white shadow-md relative">
@@ -53,10 +59,10 @@ const Sidebar = () => {
                         <AvatarBadge className="bg-green-600 dark:bg-green-800" />
                     </Avatar>
 
-                    <span className='text-sm font-bold'>Nicolas propin</span>
+                    <span className='text-sm font-bold'>{user?.user?.username}</span>
                 </div>
 
-                <button className='cursor-pointer'>
+                <button className='cursor-pointer' onClick={handleToSetting}>
                     <Settings className='w-5 h-5' />
                 </button>
             </div>
