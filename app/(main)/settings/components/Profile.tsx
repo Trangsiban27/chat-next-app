@@ -1,19 +1,24 @@
 'use client'
+import LoadingButton from '@/components/loading-button/LoadingButton'
 import { Button } from '@/components/ui/button'
+import { UserService } from '@/services/userService'
 import { useUserStore } from '@/store/useUserStore'
 import { yupResolver } from '@hookform/resolvers/yup'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Camera } from 'lucide-react'
 import React, { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import * as yup from 'yup'
 
 const schema = yup.object().shape({
-    username: yup.string().required('Username is required')
+    username: yup.string().required('Username is required'),
 })
 
 const Profile = () => {
+    const queryClient = useQueryClient()
     const avatarRef = React.useRef<HTMLInputElement>(null)
-    const { user } = useUserStore()
+    const { user, setUser } = useUserStore()
     const { control, watch, reset, formState: { errors, isValid, isDirty } } = useForm({
         mode: 'onChange',
         resolver: yupResolver(schema),
@@ -21,6 +26,56 @@ const Profile = () => {
             username: user?.user?.username || "",
         }
     })
+
+    const form = watch()
+
+    const { mutate: updateProfile, isPending } = useMutation({
+        mutationFn: async (data: any) => await UserService.updateUser(data),
+        onSuccess: (res) => {
+            console.log('res: ', res)
+            toast.success('Profile updated successfully')
+        },
+        onError: (err) => {
+            console.log('err: ', err)
+            toast.error('Failed to update profile')
+        }
+    })
+
+    const { mutate: upload, isPending: isUploading } = useMutation({
+        mutationFn: async (file: File) => await UserService.uploadAvatar(file),
+        onSuccess: (res) => {
+            console.log('res: ', res)
+            setUser({
+                ...user,
+                user: {
+                    ...user?.user,
+                    avatar: res.data?.metadata?.avatar
+                }
+            })
+
+            queryClient.invalidateQueries({ queryKey: ['user-profile'] })
+            toast.success('Avatar uploaded successfully')
+        },
+        onError: (err) => {
+            console.log('err: ', err)
+            toast.error('Failed to upload avatar')
+        }
+    })
+
+    const { data: userData, isLoading } = useQuery({
+        queryKey: ['user-profile'],
+        queryFn: UserService.getUser,
+    })
+
+    useEffect(() => {
+        if (userData) {
+            const user = userData?.data?.metadata
+
+            reset({
+                username: user.username,
+            })
+        }
+    }, [userData, reset, user])
 
     const handleAvatarClick = () => {
         avatarRef.current?.click()
@@ -30,27 +85,39 @@ const Profile = () => {
         const file = e?.target?.files?.[0]
 
         if (file) {
-
+            upload(file)
         }
     }
 
-    useEffect(() => {
-        if (user?.user?.username) {
-            reset({ username: user.user.username })
-        }
-    }, [user, reset])
+    const handleSubmit = () => {
+        console.log('form: ', form)
+        updateProfile(form)
+    }
 
     return (
         <div className='flex flex-col p-6 gap-y-6'>
 
-            <div className='w-full flex items-center justify-center'>
-                <div
-                    className='cursor-pointer w-30 h-30 border-2 border-black border-dashed bg-gray-200 rounded-full flex items-center justify-center'
-                    onClick={handleAvatarClick}
-                >
-                    <Camera />
 
-                </div>
+            <div className='w-full flex items-center justify-center'>
+                {!userData?.data?.metadata?.avatar ? (
+                    <div
+                        className='cursor-pointer w-30 h-30 border-2 border-black border-dashed bg-gray-200 rounded-full flex items-center justify-center'
+                        onClick={handleAvatarClick}
+                    >
+                        <Camera />
+                    </div>
+                ) : (
+                    <div
+                        className='relative overflow-hidden cursor-pointer group w-30 h-30 rounded-full flex items-center justify-center'
+                        onClick={handleAvatarClick}
+                    >
+                        <img src={userData?.data?.metadata?.avatar} alt="Avatar" className="w-30 h-30 rounded-full" />
+
+                        <div className='flex items-center justify-center absolute inset-0 bg-black opacity-0 group-hover:opacity-50 transition-opacity duration-300'>
+                            <Camera className='text-white' />
+                        </div>
+                    </div>
+                )}
 
                 <input
                     type="file"
@@ -109,12 +176,14 @@ const Profile = () => {
             />
 
             <div>
-                <Button
+                <LoadingButton
+                    isLoading={isPending}
                     className='bg-blue-500 cursor-pointer font-bold'
                     disabled={!isValid || !isDirty}
+                    onClick={handleSubmit}
                 >
                     Save
-                </Button>
+                </LoadingButton>
             </div>
         </div>
     )
