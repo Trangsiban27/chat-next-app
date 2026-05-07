@@ -178,7 +178,7 @@ const Profile = () => {
             <div>
                 <LoadingButton
                     isLoading={isPending}
-                    className='bg-blue-500 cursor-pointer font-bold'
+                    className=' cursor-pointer font-bold'
                     disabled={!isValid || !isDirty}
                     onClick={handleSubmit}
                 >

@@ -12,5 +12,11 @@ export const UserService = {
         formData.append('avatar', file)
 
         return axiosClient.post('/user/upload-avatar', formData)
+    },
+    updatePrivacy: (data: any) => {
+        return axiosClient.patch('/user/update-privacy', data)
+    },
+    getUserPrivacy: () => {
+        return axiosClient.get('/user/privacy')
     }
 }

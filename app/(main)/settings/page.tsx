@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { Suspense } from 'react'
 import Profile from './components/Profile'
+import Privacy from './components/Privacy'
 
 const SettingsContent = () => {
     const router = useRouter()
@@ -31,7 +32,7 @@ const SettingsContent = () => {
 
             <TabsContent value="account">
                 <div className='h-120 bg-white p-6 shadow-md rounded-lg'>
-                    Lorem ipsum dolor, sit amet consectetur adipisicing elit. Nulla dolore sed fuga, qui mollitia expedita officia cumque fugiat! Magnam expedita iste ab amet qui modi dolorum impedit aperiam repellat veniam?
+                    <Privacy />
                 </div>
             </TabsContent>
         </Tabs>
