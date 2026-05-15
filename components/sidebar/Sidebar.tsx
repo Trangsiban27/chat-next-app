@@ -12,7 +12,7 @@ const Sidebar = () => {
     const { user } = useUserStore()
 
     const navigations = [
-        { name: 'Explore', icon: Compass, href: '/' },
+        { name: 'Explore', icon: Compass, href: '/explore' },
         { name: 'Matching', icon: Heart, href: '/match' },
         { name: 'Live', icon: Radio, href: '/live' },
         { name: 'Chat', icon: MessageCircle, href: '/chat' },
