@@ -3,6 +3,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { Suspense } from 'react'
 import Highlight from './highlight/Highlight'
+import Latest from './latest/Latest'
+import MyPost from './my-post/MyPost'
 
 const ExplorePageContent = () => {
     const router = useRouter()
@@ -30,12 +32,14 @@ const ExplorePageContent = () => {
                 </TabsContent>
 
                 <TabsContent value="all">
-                    <div className=' bg-white p-6 shadow-md rounded-lg'>
+                    <div className=' '>
+                        <Latest />
                     </div>
                 </TabsContent>
 
                 <TabsContent value="my-post">
-                    <div className=' bg-white p-6 shadow-md rounded-lg'>
+                    <div className=''>
+                        <MyPost />
                     </div>
                 </TabsContent>
             </Tabs>

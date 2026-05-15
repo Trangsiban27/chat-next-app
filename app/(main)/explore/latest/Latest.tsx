@@ -1,13 +1,11 @@
 'use client'
-import React, { Suspense, useEffect } from 'react'
-import AddPost from '../../../../components/post/AddPost'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { postService } from '@/services/postService'
-import { useParams } from 'next/navigation'
+import AddPost from '@/components/post/AddPost'
 import PostList from '@/components/post/PostList'
-import { useInView } from 'react-intersection-observer'
+import { postService } from '@/services/postService'
+import { useInfiniteQuery } from '@tanstack/react-query'
+import React, { Suspense } from 'react'
 
-const HighlightContent = () => {
+const LatestContent = () => {
     const {
         data,
         isLoading,
@@ -15,8 +13,8 @@ const HighlightContent = () => {
         hasNextPage,
         isFetchingNextPage
     } = useInfiniteQuery({
-        queryKey: ['highlights-infinite'],
-        queryFn: ({ pageParam = 1 }) => postService.getHighlightPost(pageParam, 10),
+        queryKey: ['latest-infinite'],
+        queryFn: ({ pageParam = 1 }) => postService.getAllPostLatest(pageParam, 10),
         initialPageParam: 1,
         getNextPageParam: (lastPage) => {
             const { currentPage, totalPages } = lastPage?.data?.metadata?.pagination || {}
@@ -41,14 +39,14 @@ const HighlightContent = () => {
     )
 }
 
-const Highlight = () => {
+const Latest = () => {
     return (
         <div>
             <Suspense fallback={<div>Loading settings...</div>}>
-                <HighlightContent />
+                <LatestContent />
             </Suspense>
         </div>
     )
 }
 
-export default Highlight
+export default Latest
