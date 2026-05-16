@@ -11,5 +11,8 @@ export const postService = {
     },
     getAllMyPost: (page: Number, limit: Number) => {
         return axiosClient.get(`/post/my-post?page=${page}&limit=${limit}`)
+    },
+    reactionPost: (id: string) => {
+        return axiosClient.get(`/post/reactions/${id}`)
     }
 }

@@ -32,6 +32,7 @@ const HighlightContent = () => {
 
             <PostList
                 posts={allPosts}
+                queryKey={['highlights-infinite']}
                 isLoading={isLoading}
                 hasNextPage={!!hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}

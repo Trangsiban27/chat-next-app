@@ -12,8 +12,6 @@ interface Props {
 
 const PostUserGroup = ({ data, postCreatedAt }: Props) => {
 
-    console.log('data: ', data)
-
     const timeAgo = formatDistanceToNow(new Date(postCreatedAt), {
         addSuffix: true
     })
@@ -38,6 +36,7 @@ const PostUserGroup = ({ data, postCreatedAt }: Props) => {
 
             <Button
                 variant={'ghost'}
+                className='cursor-pointer'
             >
                 <EllipsisVertical />
             </Button>

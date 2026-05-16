@@ -30,6 +30,7 @@ const LatestContent = () => {
 
             <PostList
                 posts={allPosts}
+                queryKey={['latest-infinite']}
                 isLoading={isLoading}
                 hasNextPage={!!hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}

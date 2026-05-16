@@ -6,7 +6,8 @@ import { useInView } from 'react-intersection-observer'
 import { Loader2 } from 'lucide-react'
 
 interface PostProps {
-    posts: any[]
+    posts: any[],
+    queryKey: [string],
     isLoading: boolean
     hasNextPage: boolean
     isFetchingNextPage: boolean
@@ -15,6 +16,7 @@ interface PostProps {
 
 const PostList = ({
     posts,
+    queryKey,
     isLoading,
     hasNextPage,
     isFetchingNextPage,
@@ -36,7 +38,7 @@ const PostList = ({
         <div className='flex flex-col gap-6 mt-3'>
             {posts?.length > 0 && (
                 posts.map((post: any) => (
-                    <PostItem key={post?._id} post={post} />
+                    <PostItem key={post?._id} post={post} queryKey={queryKey} />
                 ))
             )}
 

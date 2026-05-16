@@ -30,6 +30,7 @@ const MyPostContent = () => {
 
             <PostList
                 posts={allPosts}
+                queryKey={['my-post-infinite']}
                 isLoading={isLoading}
                 hasNextPage={!!hasNextPage}
                 isFetchingNextPage={isFetchingNextPage}
