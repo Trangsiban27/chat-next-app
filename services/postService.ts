@@ -14,5 +14,8 @@ export const postService = {
     },
     reactionPost: (id: string) => {
         return axiosClient.get(`/post/reactions/${id}`)
+    },
+    createPost: (data: {content: string, file: File}) => {
+        return axiosClient.post(`/post`, data)
     }
 }
