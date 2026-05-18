@@ -1,10 +1,11 @@
 'use client'
-import React from 'react'
+import React, { useState } from 'react'
 import PostUserGroup from '../post-user-group/PostUserGroup'
 import { Heart, MessageCircleMore } from 'lucide-react'
 import { Button } from '../ui/button'
 import { QueryClient, useMutation, useQueryClient } from '@tanstack/react-query'
 import { postService } from '@/services/postService'
+import PostDetail from './PostDetail'
 
 interface Props {
     post: any,
@@ -14,10 +15,11 @@ interface Props {
 const PostItem = ({ post, queryKey }: Props) => {
     const queryClient = useQueryClient();
 
+    const [isOpen, setIsOpen] = useState(false)
+
     const { mutate: reaction, isPending } = useMutation({
         mutationFn: (id: string) => postService.reactionPost(id),
         onMutate: async (postId) => {
-            console.log('postId: ', postId)
             await queryClient.cancelQueries({ queryKey })
 
             const previousData = queryClient.getQueryData(queryKey)
@@ -69,6 +71,10 @@ const PostItem = ({ post, queryKey }: Props) => {
         }
     }
 
+    const handleOpenViewDetail = () => {
+        setIsOpen(true)
+    }
+
     return (
         <div className='flex flex-col w-full bg-white shadow rounded-lg overflow-hidden'>
             <PostUserGroup data={post?.author} postCreatedAt={post?.createdAt} />
@@ -93,9 +99,9 @@ const PostItem = ({ post, queryKey }: Props) => {
                     <span className=''>{post?.reactionCount} likes</span>
                 </div>
 
-                <div className='flex items-center gap-1'>
-                    <span>0</span>
-                    <span>comments</span>
+                <div className='flex items-center gap-1 group cursor-pointer' onClick={handleOpenViewDetail}>
+                    <span className='group-hover:underline'>0</span>
+                    <span className='group-hover:underline'>comments</span>
                 </div>
             </div>
 
@@ -120,6 +126,8 @@ const PostItem = ({ post, queryKey }: Props) => {
                     <MessageCircleMore className='w-4' />
                 </Button>
             </div>
+
+            <PostDetail postId={post?._id} isOpen={isOpen} setIsOpen={setIsOpen} />
         </div>
     )
 }

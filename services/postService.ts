@@ -17,5 +17,8 @@ export const postService = {
     },
     createPost: (data: {content: string, file: File}) => {
         return axiosClient.post(`/post`, data)
+    },
+    getPostDetail: (postId: string) => {
+        return axiosClient.get(`/post/${postId}`)
     }
 }
