@@ -6,13 +6,14 @@ interface Props {
     children: React.ReactNode,
     className?: string,
     onClick: () => void,
-    disabled?: boolean
+    disabled?: boolean,
+    variant?: "link" | "default" | "outline" | "secondary" | "ghost" | "destructive" | null | undefined
 }
 
-const LoadingButton = ({ isLoading, children, className, disabled, onClick }: Props) => {
+const LoadingButton = ({ variant, isLoading, children, className, disabled, onClick }: Props) => {
     return (
         <Button
-            variant="outline"
+            variant={variant ? variant : "outline"}
             className={className}
             onClick={onClick}
             disabled={disabled}

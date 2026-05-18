@@ -6,6 +6,8 @@ import { postService } from '@/services/postService'
 import PostUserGroup from '../post-user-group/PostUserGroup'
 import { Heart, Loader2, MessageCircleMore } from 'lucide-react'
 import { Button } from '../ui/button'
+import AddComment from './AddComment'
+import CommentList from './CommentList'
 
 interface Props {
     postId: string,
@@ -107,6 +109,12 @@ const PostDetail = ({ postId, isOpen, setIsOpen }: Props) => {
                     >
                         <MessageCircleMore className='w-4' />
                     </Button>
+                </div>
+
+                <div>
+                    <AddComment postId={post?._id} parentId={null} />
+
+                    <CommentList postId={post?._id} />
                 </div>
             </DialogContent>
         </Dialog>

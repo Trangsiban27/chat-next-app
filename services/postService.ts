@@ -20,5 +20,12 @@ export const postService = {
     },
     getPostDetail: (postId: string) => {
         return axiosClient.get(`/post/${postId}`)
+    },
+    addComment: (data: {postId: string, parentId: string | null, content: string}) => {
+        return axiosClient.post('/comment', data)
+    },
+    getComments: (postId: string, lastId: string, limit: number) => {
+        console.log('lastId: ', lastId)
+        return axiosClient.get(`/comment?postId=${postId}&lastId=${lastId}&limit=${limit || 10}`)
     }
 }
