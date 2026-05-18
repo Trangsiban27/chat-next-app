@@ -3,11 +3,12 @@ import { Avatar, AvatarBadge, AvatarFallback, AvatarImage } from '../ui/avatar'
 import UserAvatarBlock from '../user-avatar-block/UserAvatarBlock'
 import { Send } from 'lucide-react'
 import { Button } from '../ui/button'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { postService } from '@/services/postService'
 import { toast } from 'sonner'
 import { Controller, useForm } from 'react-hook-form'
 import LoadingButton from '../loading-button/LoadingButton'
+import { useUserStore } from '@/store/useUserStore'
 
 interface CommentBody {
     postId: string,
@@ -21,8 +22,9 @@ interface Props {
 }
 
 const AddComment = ({ postId, parentId }: Props) => {
-
-    const { control, watch } = useForm({
+    const queryClient = useQueryClient() as any
+    const { user } = useUserStore()
+    const { control, watch, reset } = useForm({
         mode: 'onChange',
         defaultValues: {
             content: ''
@@ -33,16 +35,60 @@ const AddComment = ({ postId, parentId }: Props) => {
 
     const { mutate: addComment, isPending } = useMutation({
         mutationFn: (data: CommentBody) => postService.addComment(data),
+        onMutate: async (newComment) => {
+            await queryClient.cancelQueries({
+                queryKey: ['comments', postId]
+            })
+
+            const previousData = queryClient.getQueryData(['comments', postId])
+
+            queryClient.setQueryData(['comments', postId], (old: any) => {
+                const fakeNewComment = {
+                    _id: Date.now().toString(),
+                    content: form.content,
+                    author: {
+                        _id: user?.user?._id,
+                        username: user?.user?.username,
+                        avatar: user?.user?.avatar
+                    },
+                    createdAt: new Date().toISOString(),
+                }
+
+                return {
+                    ...old,
+                    pages: [
+                        {
+                            ...old.pages[0],
+                            data: {
+                                ...old.pages[0].data,
+                                metadata: {
+                                    ...old.pages[0].data.metadata,
+                                    comments: [fakeNewComment, ...old.pages[0].data.metadata.comments]
+                                }
+                            }
+                        },
+                        ...old.pages.slice(1)
+                    ]
+                }
+            })
+
+            return { previousData }
+        },
         onSuccess: () => {
             toast.success('Add comment successfully!')
+            reset()
         },
-        onError: (err) => {
+        onError: (err, newComment, context: any) => {
             toast.error('Add comment fail, please try again!')
+            queryClient.setQueryData(['comments', postId], context?.previousComments);
+            reset()
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['comments', postId] });
         }
     })
 
     const handleSubmitComment = () => {
-        console.log('form: ', form)
         addComment({
             postId,
             parentId,
