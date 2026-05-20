@@ -1,7 +1,7 @@
 import React from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { postService } from '@/services/postService'
 import PostUserGroup from '../post-user-group/PostUserGroup'
 import { Heart, Loader2, MessageCircleMore } from 'lucide-react'
@@ -16,12 +16,13 @@ interface Props {
 }
 
 const PostDetail = ({ postId, isOpen, setIsOpen }: Props) => {
-
+    const queryClient = useQueryClient()
     const { data, isLoading } = useQuery({
         queryKey: ['post', postId],
         queryFn: () => postService.getPostDetail(postId),
         enabled: isOpen && !!postId,
-        gcTime: 0,
+        staleTime: 0,
+        refetchOnMount: true,
     }) as any
 
     const post = data?.data?.metadata
@@ -29,11 +30,45 @@ const PostDetail = ({ postId, isOpen, setIsOpen }: Props) => {
     const { mutate: reaction, isPending } = useMutation({
         mutationFn: (id: string) => postService.reactionPost(id),
         onMutate: async (postId) => {
+            queryClient.cancelQueries({
+                queryKey: ['post', postId]
+            })
 
+            const previousData = queryClient.getQueryData(['post', postId])
+
+            queryClient.setQueryData(['post', postId], (old: any) => {
+
+                if (!old) return
+
+                console.log('old: ', old)
+
+                const isCurrentReacted = old.data.metadata.isReact
+
+                return {
+                    ...old,
+                    data: {
+                        ...old.data,
+                        metadata: {
+                            ...old.data.metadata,
+                            isReact: !isCurrentReacted,
+                            reactionCount: isCurrentReacted ?
+                                Math.max(0, old.data.metadata.reactionCount - 1) :
+                                old.data.metadata.reactionCount + 1
+                        }
+                    }
+                }
+            })
+
+            return { previousData }
         },
         onError: (err, postId, context) => {
+            if (context?.previousData) {
+                queryClient.setQueryData(['post', postId], context.previousData)
+            }
         },
         onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['post', postId] })
+            queryClient.invalidateQueries({ queryKey: ['posts'] })
         }
     })
 
@@ -83,7 +118,7 @@ const PostDetail = ({ postId, isOpen, setIsOpen }: Props) => {
                         </div>
 
                         <div className='flex items-center gap-1 cursor-pointer'>
-                            <span className=''>0</span>
+                            <span className=''>{post?.commentCount ?? 0}</span>
                             <span className=''>comments</span>
                         </div>
                     </div>

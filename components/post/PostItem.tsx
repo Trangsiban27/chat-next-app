@@ -100,7 +100,7 @@ const PostItem = ({ post, queryKey }: Props) => {
                 </div>
 
                 <div className='flex items-center gap-1 group cursor-pointer' onClick={handleOpenViewDetail}>
-                    <span className='group-hover:underline'>0</span>
+                    <span className='group-hover:underline'>{post?.commentCount}</span>
                     <span className='group-hover:underline'>comments</span>
                 </div>
             </div>

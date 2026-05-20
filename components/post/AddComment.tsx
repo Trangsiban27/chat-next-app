@@ -114,7 +114,7 @@ const AddComment = ({ postId, parentId }: Props) => {
                     className='cursor-pointer'
                     onClick={handleSubmitComment}
                     isLoading={isPending}
-                    disabled={isPending}
+                    disabled={isPending || !form.content}
                 >
                     <Send />
                 </LoadingButton>
