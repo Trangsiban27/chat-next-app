@@ -16,7 +16,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                 </header>
 
                 {/* Content Area - Cuộn độc lập */}
-                <main className="flex-1 overflow-y-auto p-4 bg-slate-50">
+                <main className="flex-1 overflow-y-auto bg-slate-50">
                     {children}
                 </main>
             </div>

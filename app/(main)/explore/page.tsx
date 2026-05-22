@@ -16,7 +16,7 @@ const ExplorePageContent = () => {
         router.push(`/explore?tab=${value}`)
     }
     return (
-        <div className='flex justify-center'>
+        <div className='flex justify-center p-4'>
             <Tabs value={activeTab} onValueChange={handleChangeTab} className="w-1/2">
                 <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="highlight">Highlight</TabsTrigger>
