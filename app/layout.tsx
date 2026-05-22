@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "@/components/header/Header";
 import QueryProvider from "@/providers/QueryProvider";
 import { Toaster } from "sonner";
+import { SocketProvider } from "./context/socketContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +33,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <QueryProvider>
-          {children}
+          <SocketProvider>
+            {children}
+          </SocketProvider>
           <Toaster position="top-right" richColors closeButton />
         </QueryProvider>
       </body>

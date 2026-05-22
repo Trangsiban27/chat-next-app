@@ -5,14 +5,17 @@ import { useUserStore } from '@/store/useUserStore'
 import { EllipsisVertical } from 'lucide-react'
 import React, { useEffect, useRef } from 'react'
 import ChatInput from './chat-input/ChatInput'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { ChatService } from '@/services/chatService'
 import { useChatStore } from '@/store/useChatStore'
+import { useSocket } from '@/app/context/socketContext'
 
 const ChatBox = () => {
     const { selectedConversation } = useChatStore()
     const { user } = useUserStore()
+    const { socket } = useSocket()
     const scrollRef = useRef<HTMLDivElement>(null)
+    const queryClient = useQueryClient()
 
     const {
         data,
@@ -24,7 +27,6 @@ const ChatBox = () => {
         queryKey: ['messages', selectedConversation?._id],
         queryFn: ({ pageParam = '' }) => {
             if (selectedConversation) {
-                console.log('selectedConversation: ', selectedConversation)
                 return ChatService.getMessages(selectedConversation?._id, pageParam, 10)
             }
 
@@ -34,7 +36,7 @@ const ChatBox = () => {
         getNextPageParam: (lastPage: any) => {
             const metadata = lastPage?.data?.metadata
 
-            return metadata?.hasMore ? metadata?.nextCursor : undefined
+            return metadata?.hasMore ? metadata?.nextCursor?._id : undefined
         },
         enabled: !!selectedConversation?._id
     })
@@ -48,6 +50,56 @@ const ChatBox = () => {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight
         }
     }, [messages?.length, selectedConversation?._id])
+
+    useEffect(() => {
+        if (socket && selectedConversation?._id) {
+            socket.emit('join_conversation', {
+                conversationId: selectedConversation?._id
+            });
+        }
+    }, [socket, selectedConversation?._id]);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleReceiveMessage = (newMessage: any) => {
+
+            if (newMessage?.sender?._id !== user?.user?._id) {
+                queryClient.setQueryData(['messages', selectedConversation?._id], (old: any) => {
+                    if (!old) return old;
+
+                    const updatedPages = old.pages.map((page: any, index: number) => {
+                        // Chỉ cập nhật trang đầu tiên (nơi chứa các tin nhắn mới nhất)
+                        if (index === 0) {
+                            return {
+                                ...page,
+                                data: {
+                                    ...page.data,
+                                    metadata: {
+                                        ...page.data.metadata,
+                                        // Thêm tin nhắn mới vào đầu mảng (vì bạn dùng .reverse() ở UI)
+                                        message: [newMessage, ...(page.data.metadata.message || [])]
+                                    }
+                                }
+                            };
+                        }
+                        return page;
+                    });
+
+                    return {
+                        ...old,
+                        pages: updatedPages
+                    };
+                });
+            }
+        };
+
+        socket.on('receive_message', handleReceiveMessage);
+
+        return () => {
+            socket.off('receive_message', handleReceiveMessage);
+        };
+    }, [socket, queryClient, selectedConversation?._id])
 
     if (!selectedConversation) {
         return (
@@ -81,7 +133,7 @@ const ChatBox = () => {
 
             <div
                 ref={scrollRef}
-                className='flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-scrollbar h-screen'
+                className='flex-1 overflow-y-scroll p-4 flex flex-col gap-3 custom-scrollbar h-[80vh] pb-10'
             >
                 {/* Nút tải thêm tin nhắn cũ */}
                 {hasNextPage && (
