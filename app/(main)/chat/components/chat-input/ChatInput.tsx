@@ -1,11 +1,13 @@
+'use client'
 import { useSocket } from '@/app/context/socketContext'
 import { Button } from '@/components/ui/button'
 import { useChatStore } from '@/store/useChatStore'
 import { useUserStore } from '@/store/useUserStore'
 import { useQueryClient } from '@tanstack/react-query'
-import { Send } from 'lucide-react'
-import React from 'react'
+import { Laugh, Send } from 'lucide-react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
+import EmojiPicker from 'emoji-picker-react';
 
 interface MessageType {
     conversationId: string,
@@ -18,10 +20,13 @@ const ChatInput = () => {
     const { socket } = useSocket()
     const { user } = useUserStore()
     const { selectedConversation } = useChatStore()
+    const emojiPickerRef = useRef<HTMLDivElement>(null)
 
     const queryClient = useQueryClient()
 
-    const { control, watch, reset } = useForm({
+    const [isOpen, setIsOpen] = useState<boolean>(false) //for emoji component
+
+    const { control, watch, reset, setValue } = useForm({
         mode: 'onChange',
         defaultValues: {
             text: ''
@@ -29,6 +34,23 @@ const ChatInput = () => {
     })
 
     const form = watch()
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            // Nếu vùng chứa emoji đang mở và vị trí click KHÔNG nằm trong emojiPickerRef
+            if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+                setIsOpen(false)
+            }
+        }
+
+        // Đăng ký sự kiện
+        document.addEventListener('mousedown', handleClickOutside)
+
+        return () => {
+            // Hủy đăng ký khi component bị unmount
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [])
 
     const handleSendMessage = async (e: any) => {
         e.preventDefault()
@@ -89,8 +111,12 @@ const ChatInput = () => {
         } catch (err) {
             console.log('Send message fail: ', err)
         }
+    }
 
+    const onEmojiClick = (emojiData: any) => {
+        const currentText = watch('text')
 
+        setValue('text', currentText + emojiData?.emoji)
     }
 
     return (
@@ -98,7 +124,7 @@ const ChatInput = () => {
             onSubmit={handleSendMessage}
             className='sticky bottom-0 left-0 right-0 flex items-center p-4 gap-4 z-10 bg-white'
         >
-            <div className='flex-1 border rounded-lg p-3'>
+            <div className='flex-1 border rounded-lg p-3 flex items-center relative'>
                 <Controller
                     control={control}
                     name='text'
@@ -112,10 +138,31 @@ const ChatInput = () => {
                         />
                     )}
                 />
+
+
+
+                <div ref={emojiPickerRef} className='relative'>
+                    <Button
+                        type="button" // QUAN TRỌNG: Thêm dòng này để không bị submit form
+                        variant={'ghost'}
+                        className='cursor-pointer'
+                        onClick={() => setIsOpen(!isOpen)} // Đổi thành toggle để đóng/mở
+                    >
+                        <Laugh />
+                    </Button>
+
+                    {isOpen && (
+                        <div className='absolute bottom-full right-0 mb-2 z-50'>
+                            <EmojiPicker
+                                onEmojiClick={onEmojiClick}
+                            // Các props khác
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
 
             <Button
-                /* 2. Thêm type="submit" và bỏ onClick (onSubmit của form sẽ xử lý cả hai) */
                 type="submit"
                 variant={'secondary'}
                 className='w-12 h-12 bg-blue-400 cursor-pointer'
