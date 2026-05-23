@@ -3,11 +3,12 @@ import { useSocket } from '@/app/context/socketContext'
 import { Button } from '@/components/ui/button'
 import { useChatStore } from '@/store/useChatStore'
 import { useUserStore } from '@/store/useUserStore'
-import { useQueryClient } from '@tanstack/react-query'
-import { Laugh, Send } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { FileImage, Laugh, Send, X } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import EmojiPicker from 'emoji-picker-react';
+import { ChatService } from '@/services/chatService'
 
 interface MessageType {
     conversationId: string,
@@ -21,17 +22,25 @@ const ChatInput = () => {
     const { user } = useUserStore()
     const { selectedConversation } = useChatStore()
     const emojiPickerRef = useRef<HTMLDivElement>(null)
+    const inputRef = useRef<any>(null)
 
     const queryClient = useQueryClient()
 
     const [isOpen, setIsOpen] = useState<boolean>(false) //for emoji component
+    const [images, setImages] = useState<string[]>([])
+    const [fileUpload, setFileUpload] = useState<any>()
 
     const { control, watch, reset, setValue } = useForm({
         mode: 'onChange',
         defaultValues: {
-            text: ''
-        }
+            text: '',
+            media: []
+        } as any
     })
+
+    const { mutateAsync: uploadFileAsync, isPending: isUploading } = useMutation({
+        mutationFn: (formData: FormData) => ChatService.uploadFile(formData),
+    });
 
     const form = watch()
 
@@ -58,11 +67,26 @@ const ChatInput = () => {
         if (!selectedConversation?._id || !user?.user?._id || !form?.text || form?.text === '') return
 
         try {
+            let uploadedMedia = [];
+            const filesToUpload = fileUpload ? Array.from(fileUpload) : [];
+
+            if (filesToUpload.length > 0) {
+                const uploadPromises = filesToUpload.map(async (file: any) => {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const res = await uploadFileAsync(formData);
+                    return res?.data?.metadata; // Trả về metadata sau khi upload thành công
+                });
+
+                // Chờ tất cả ảnh upload xong
+                uploadedMedia = await Promise.all(uploadPromises);
+            }
+
             const payload: MessageType = {
                 conversationId: selectedConversation?._id,
                 senderId: user?.user?._id,
                 text: form?.text,
-                media: []
+                media: uploadedMedia as any
             }
 
             const optimisticMessage = {
@@ -105,9 +129,9 @@ const ChatInput = () => {
 
             socket?.emit('send_message', payload)
 
-            reset({
-                text: ''
-            })
+            reset({ text: '', media: [] });
+            setImages([]);
+            setFileUpload(null);
         } catch (err) {
             console.log('Send message fail: ', err)
         }
@@ -119,46 +143,123 @@ const ChatInput = () => {
         setValue('text', currentText + emojiData?.emoji)
     }
 
+    const handleFileClick = () => {
+        inputRef.current.click()
+    }
+
+    const handleSelectFile = (e: any) => {
+        const files = e.target.files;
+        if (!files) return;
+
+        const fileArray = Array.from(files);
+
+        setFileUpload((prev: any) => prev ? [...Array.from(prev), ...fileArray] : fileArray);
+
+        const newPreviewUrls = fileArray.map((file: any) => URL.createObjectURL(file));
+        setImages((prev) => [...prev, ...newPreviewUrls]);
+
+        e.target.value = '';
+    }
+
+    const handleRemoveImage = (index: number) => {
+        if (index >= 0 && images?.length > 0) {
+            const urlToRevoke = images[index]
+
+            if (urlToRevoke) {
+                URL.revokeObjectURL(urlToRevoke)
+            }
+
+            setImages((prev) => prev.filter((_, i) => i !== index))
+
+            if (fileUpload) {
+                const currentFiles = Array.from(fileUpload);
+                const newFiles = currentFiles.filter((_, i) => i !== index);
+                setFileUpload(newFiles);
+            }
+        }
+    }
+
     return (
         <form
             onSubmit={handleSendMessage}
             className='sticky bottom-0 left-0 right-0 flex items-center p-4 gap-4 z-10 bg-white'
         >
-            <div className='flex-1 border rounded-lg p-3 flex items-center relative'>
-                <Controller
-                    control={control}
-                    name='text'
-                    render={({ field }) => (
-                        <input
-                            {...field}
-                            type="text"
-                            placeholder='Write your message...'
-                            className='w-full focus:outline-0'
-                            autoComplete="off"
-                        />
-                    )}
-                />
+            <div className='flex-1 flex-col gap-y-2 border rounded-lg p-3 flex items-start relative'>
 
+                {images?.length > 0 && (
+                    <div className='flex flex-wrap gap-2'>
+                        {images?.map((img, index) => (
+                            <div key={index} className='relative'>
+                                <img
+                                    key={index}
+                                    src={img}
+                                    alt={`image-${index}`}
+                                    className='w-20 h-20 border boder-gray-500 cursor-pointer hover:shadow object-cover rounded-md overflow-hidden'
+                                />
 
+                                <Button
+                                    variant={'ghost'}
+                                    className='absolute top-0 right-0 bg-gray-200/40 fill-red-500 text-red-500 cursor-pointer'
+                                    onClick={() => handleRemoveImage(index)}
+                                >
+                                    <X />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
-                <div ref={emojiPickerRef} className='relative'>
+                <div className='flex items-center w-full'>
+                    <Controller
+                        control={control}
+                        name='text'
+                        render={({ field }) => (
+                            <input
+                                {...field}
+                                type="text"
+                                placeholder='Write your message...'
+                                className='w-full focus:outline-0'
+                                autoComplete="off"
+                            />
+                        )}
+                    />
+
                     <Button
-                        type="button" // QUAN TRỌNG: Thêm dòng này để không bị submit form
+                        type='button'
                         variant={'ghost'}
                         className='cursor-pointer'
-                        onClick={() => setIsOpen(!isOpen)} // Đổi thành toggle để đóng/mở
+                        onClick={handleFileClick}
                     >
-                        <Laugh />
+                        <FileImage />
                     </Button>
 
-                    {isOpen && (
-                        <div className='absolute bottom-full right-0 mb-2 z-50'>
-                            <EmojiPicker
-                                onEmojiClick={onEmojiClick}
-                            // Các props khác
-                            />
-                        </div>
-                    )}
+                    <input
+                        ref={inputRef}
+                        type="file"
+                        className='hidden'
+                        multiple
+                        accept='images/*'
+                        onChange={handleSelectFile}
+                    />
+
+                    <div ref={emojiPickerRef} className='relative'>
+                        <Button
+                            type="button" // QUAN TRỌNG: Thêm dòng này để không bị submit form
+                            variant={'ghost'}
+                            className='cursor-pointer'
+                            onClick={() => setIsOpen(!isOpen)} // Đổi thành toggle để đóng/mở
+                        >
+                            <Laugh />
+                        </Button>
+
+                        {isOpen && (
+                            <div className='absolute bottom-full right-0 mb-2 z-50'>
+                                <EmojiPicker
+                                    onEmojiClick={onEmojiClick}
+                                />
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -166,7 +267,7 @@ const ChatInput = () => {
                 type="submit"
                 variant={'secondary'}
                 className='w-12 h-12 bg-blue-400 cursor-pointer'
-                disabled={!form?.text || form?.text.trim() === ''}
+                disabled={!form?.text || form?.text.trim() === '' || isUploading}
             >
                 <Send className='text-white' />
             </Button>

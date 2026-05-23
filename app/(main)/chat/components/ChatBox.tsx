@@ -3,12 +3,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useUserStore } from '@/store/useUserStore'
 import { EllipsisVertical } from 'lucide-react'
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import ChatInput from './chat-input/ChatInput'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
 import { ChatService } from '@/services/chatService'
 import { useChatStore } from '@/store/useChatStore'
 import { useSocket } from '@/app/context/socketContext'
+import ViewImage from './view-image/ViewImage'
 
 const ChatBox = () => {
     const { selectedConversation } = useChatStore()
@@ -16,6 +17,9 @@ const ChatBox = () => {
     const { socket } = useSocket()
     const scrollRef = useRef<HTMLDivElement>(null)
     const queryClient = useQueryClient()
+
+    const [isOpenView, setIsOpenView] = useState(false)
+    const [image, setImage] = useState()
 
     const {
         data,
@@ -101,6 +105,11 @@ const ChatBox = () => {
         };
     }, [socket, queryClient, selectedConversation?._id])
 
+    const handleViewImage = (image: any) => {
+        setIsOpenView(true)
+        setImage(image)
+    }
+
     if (!selectedConversation) {
         return (
             <div className='flex-1 flex items-center justify-center text-gray-500 bg-[#f0f2f5]'>
@@ -168,19 +177,20 @@ const ChatBox = () => {
 
                                 <div className='flex flex-col'>
                                     <div className={`px-3 py-2 rounded-2xl text-[14px] leading-snug ${isMine
-                                        ? 'bg-[#0084ff] text-white rounded-tr-sm'
+                                        ? 'bg-[#0084ff]/80 text-white rounded-tr-sm'
                                         : 'bg-[#f0f0f0] text-black rounded-tl-sm'
                                         }`}>
                                         {msg.text}
 
-                                        {msg.media?.length > 0 && (
-                                            <div className='mt-1 grid gap-1'>
+                                        {msg?.media?.length > 0 && (
+                                            <div className='flex items-center gap-2 mt-4'>
                                                 {msg.media.map((item: any, i: number) => (
                                                     <img
                                                         key={i}
                                                         src={item.url}
                                                         alt="media"
-                                                        className='rounded-xl max-h-60 object-cover'
+                                                        className='rounded-md overflow-hidden w-40 h-40 object-cover cursor-pointer hover:shadow'
+                                                        onClick={() => handleViewImage(item)}
                                                     />
                                                 ))}
                                             </div>
@@ -194,6 +204,8 @@ const ChatBox = () => {
             </div>
 
             <ChatInput />
+
+            {isOpenView && <ViewImage image={image} setIsOpen={setIsOpenView} />}
         </div>
     )
 }
